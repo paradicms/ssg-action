@@ -3,7 +3,7 @@ import dataclasses
 import os.path
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Type
+from typing import Type, Optional
 
 from configargparse import ArgParser
 
@@ -19,32 +19,55 @@ class Action(GitHubAction):
 
     @dataclass(frozen=True)
     class Inputs(GitHubAction.Inputs):
-        build_directory_path: str = dataclasses.field(
+        data_file_paths: str = dataclasses.field(
+            default="",
+            metadata={
+                "description": "Colon-separated paths to one or more data files; if not specified, use data from the data_directory_path"
+            },
+        )
+
+        site_directory_path: str = dataclasses.field(
             default="_site",
             metadata={
                 "description": "Path to a directory where the generated static assets (CSS, HTML, JavaScript) should be placed"
             },
         )
 
-        data_file_paths: str = dataclasses.field(
-            default=GitHubAction.Inputs.REQUIRED,
-            metadata={"description": "Colon-separated paths to one or more data files"},
-        )
-
     def __init__(
-        self, *, build_directory_path: str, data_file_paths: str, dev: bool, **kwds
+        self,
+        *,
+        data_file_paths: Optional[str],
+        dev: bool,
+        site_directory_path: str,
+        **kwds
     ):
         GitHubAction.__init__(self, **kwds)
-        self.__build_directory_path = Path(build_directory_path)
-        self.__data_file_paths = (
-            tuple(
-                Path(data_file_path)
-                for data_file_path in data_file_paths.split(os.path.pathsep)
+        if data_file_paths:
+            self.__data_file_paths = (
+                tuple(
+                    Path(data_file_path)
+                    for data_file_path in data_file_paths.split(os.path.pathsep)
+                )
+                if data_file_paths
+                else ()
             )
-            if data_file_paths
-            else ()
-        )
+        else:
+            found_data_file_paths = []
+            for data_dir_path in (
+                self._data_directory_path,
+                self._data_directory_path / "loaded",
+            ):
+                for file_name in os.listdir(data_dir_path):
+                    if not os.path.splitext(file_name)[-1].lower() == ".trig":
+                        continue
+                    found_data_file_paths.append(Path(data_dir_path / file_name))
+                if found_data_file_paths:
+                    break
+            if not found_data_file_paths:
+                raise ValueError("no data files found in " + self._data_directory_path)
+            self.__data_file_paths = tuple(found_data_file_paths)
         self.__dev = dev
+        self.__site_directory_path = Path(site_directory_path)
 
     @classmethod
     def _add_arguments(
@@ -67,10 +90,10 @@ class Action(GitHubAction):
                 # We're also running in Docker, which usually means that the GUI's out directory is on a different mount
                 # than the directory we're "deploying" to, and we need to use copy instead of rename.
                 copy=True,
-                deploy_dir_path=Path(self.__build_directory_path).absolute(),
+                deploy_dir_path=Path(self.__site_directory_path).absolute(),
             ),
             dev=self.__dev,
-            loaded_data_dir_path=self._data_dir_path / "loaded",
+            loaded_data_dir_path=self._data_directory_path / "loaded",
             pipeline_id=self._pipeline_id,
         )
         loader(flush=True, models=tuple())
