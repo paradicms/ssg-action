@@ -1,0 +1,23 @@
+author: Minor Gordon
+branding:
+  icon: loader
+description: Generate a static site using Paradicms.
+inputs:
+  build_directory_path:
+    default: _site
+    description: Path to a directory where the generated static assets (CSS, HTML,
+      JavaScript) should be placed
+    required: false
+  data_file_paths:
+    description: Colon-separated paths to one or more data files
+    required: true
+  debug:
+    description: Debug the action
+    required: false
+  pipeline_id:
+    description: Pipeline id. Defaults to the name of the repository.
+    required: false
+name: Generate a static site using Paradicms.
+runs:
+  image: Dockerfile
+  using: docker
