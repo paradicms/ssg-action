@@ -1,6 +1,6 @@
 # `ssg-action`
 
-This GitHub Action generates a static site using Paradicms.
+This GitHub Action generates a static website using Paradicms.
 
 ### Usage
 
