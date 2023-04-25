@@ -7,7 +7,11 @@ from typing import Type, Optional
 
 from configargparse import ArgParser
 
+from paradicms_etl.extractors.rdf_file_extractor import RdfFileExtractor
 from paradicms_etl.github_action import GitHubAction
+from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
+    RdfConjunctiveGraphTransformer,
+)
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
 from paradicms_ssg.loaders.app_loader import AppLoader
 
@@ -54,8 +58,8 @@ class Action(GitHubAction):
         else:
             found_data_file_paths = []
             for data_dir_path in (
-                self._data_directory_path,
                 self._data_directory_path / "loaded",
+                self._data_directory_path,
             ):
                 for file_name in os.listdir(data_dir_path):
                     if not os.path.splitext(file_name)[-1].lower() == ".trig":
@@ -82,8 +86,13 @@ class Action(GitHubAction):
         )
 
     def _run(self):
-        loader = AppLoader(
-            data_file_paths=self.__data_file_paths,
+        def extract_transform():
+            for data_file_path in self.__data_file_paths:
+                yield from RdfConjunctiveGraphTransformer()(
+                    **RdfFileExtractor(rdf_file_path=data_file_path)()
+                )
+
+        AppLoader(
             deployer=FsDeployer(
                 # We're running in an environment that's never been used before, so no need to archive
                 archive=False,
@@ -95,8 +104,7 @@ class Action(GitHubAction):
             dev=self.__dev,
             loaded_data_dir_path=self._data_directory_path / "loaded",
             pipeline_id=self._pipeline_id,
-        )
-        loader(flush=True, models=tuple())
+        )(flush=True, models=extract_transform())
 
 
 if __name__ == "__main__":
