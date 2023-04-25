@@ -3,19 +3,24 @@ branding:
   icon: loader
 description: Generate a static site using Paradicms.
 inputs:
-  build_directory_path:
-    default: _site
-    description: Path to a directory where the generated static assets (CSS, HTML,
-      JavaScript) should be placed
+  data_directory_path:
+    default: _data
+    description: Path to a directory where extracted/ and loaded/ data should be stored
     required: false
   data_file_paths:
-    description: Colon-separated paths to one or more data files
-    required: true
+    description: Colon-separated paths to one or more data files; if not specified,
+      use data from the data_directory_path
+    required: false
   debug:
     description: Debug the action
     required: false
   pipeline_id:
     description: Pipeline id. Defaults to the name of the repository.
+    required: false
+  site_directory_path:
+    default: _site
+    description: Path to a directory where the generated static assets (CSS, HTML,
+      JavaScript) should be placed
     required: false
 name: Generate a static site using Paradicms.
 runs:
