@@ -14,6 +14,7 @@ from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
 )
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
 from paradicms_ssg.loaders.app_loader import AppLoader
+from paradicms_ssg.models.root_model_classes_by_name import ROOT_MODEL_CLASSES_BY_NAME
 
 
 class Action(GitHubAction):
@@ -88,9 +89,9 @@ class Action(GitHubAction):
     def _run(self):
         def extract_transform():
             for data_file_path in self.__data_file_paths:
-                yield from RdfConjunctiveGraphTransformer()(
-                    **RdfFileExtractor(rdf_file_path=data_file_path)()
-                )
+                yield from RdfConjunctiveGraphTransformer(
+                    root_model_classes_by_name=ROOT_MODEL_CLASSES_BY_NAME
+                )(**RdfFileExtractor(rdf_file_path=data_file_path)())
 
         AppLoader(
             deployer=FsDeployer(
