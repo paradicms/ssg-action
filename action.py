@@ -3,7 +3,7 @@ import dataclasses
 import os.path
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Type, Optional
+from typing import Type, List
 
 from configargparse import ArgParser
 
@@ -24,10 +24,10 @@ class Action(GitHubAction):
 
     @dataclass(frozen=True)
     class Inputs(GitHubAction.Inputs):
-        data_file_paths: str = dataclasses.field(
-            default="",
+        data_paths: str = dataclasses.field(
+            default="_data",
             metadata={
-                "description": "Colon-separated paths to one or more data files; if not specified, use data from the data_directory_path"
+                "description": "colon-separated paths to one or more data files created by ETL actions, or directories containing data files"
             },
         )
 
@@ -38,39 +38,25 @@ class Action(GitHubAction):
             },
         )
 
-    def __init__(
-        self,
-        *,
-        data_file_paths: Optional[str],
-        dev: bool,
-        site_directory_path: str,
-        **kwds
-    ):
+    def __init__(self, *, data_paths: str, dev: bool, site_directory_path: str, **kwds):
         GitHubAction.__init__(self, **kwds)
-        if data_file_paths:
-            self.__data_file_paths = (
-                tuple(
-                    Path(data_file_path)
-                    for data_file_path in data_file_paths.split(os.path.pathsep)
-                )
-                if data_file_paths
-                else ()
-            )
-        else:
-            found_data_file_paths = []
-            for data_dir_path in (
-                self._data_directory_path / "loaded",
-                self._data_directory_path,
-            ):
+
+        data_file_paths: List[Path] = []
+        for data_path in data_paths.split(os.path.pathsep):
+            data_path_ = Path(data_path)
+            if not data_path_.exists():
+                raise ValueError(f"data path {data_path_} does not exist")
+            if data_path_.is_file():
+                data_file_paths.append(data_path_)
+            elif data_path_.is_dir():
+                data_dir_path = data_path_
                 for file_name in os.listdir(data_dir_path):
                     if not os.path.splitext(file_name)[-1].lower() == ".trig":
                         continue
-                    found_data_file_paths.append(Path(data_dir_path / file_name))
-                if found_data_file_paths:
-                    break
-            if not found_data_file_paths:
-                raise ValueError("no data files found in " + self._data_directory_path)
-            self.__data_file_paths = tuple(found_data_file_paths)
+                    data_file_paths.append(Path(data_dir_path / file_name))
+            else:
+                raise NotImplementedError
+        self.__data_file_paths = tuple(data_file_paths)
         self.__dev = dev
         self.__site_directory_path = Path(site_directory_path)
 
@@ -94,6 +80,7 @@ class Action(GitHubAction):
                 )(**RdfFileExtractor(rdf_file_path=data_file_path)())
 
         AppLoader(
+            cache_dir_path=self._cache_dir_path / "app",
             deployer=FsDeployer(
                 # We're running in an environment that's never been used before, so no need to archive
                 archive=False,
@@ -103,7 +90,6 @@ class Action(GitHubAction):
                 deploy_dir_path=Path(self.__site_directory_path).absolute(),
             ),
             dev=self.__dev,
-            loaded_data_dir_path=self._data_directory_path / "loaded",
             pipeline_id=self._pipeline_id,
         )(flush=True, models=extract_transform())
 
