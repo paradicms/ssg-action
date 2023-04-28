@@ -25,7 +25,7 @@ class Action(GitHubAction):
     @dataclass(frozen=True)
     class Inputs(GitHubAction.Inputs):
         data_paths: str = dataclasses.field(
-            default="_data",
+            default=".paradicms/data",
             metadata={
                 "description": "colon-separated paths to one or more data files created by ETL actions, or directories containing data files"
             },
