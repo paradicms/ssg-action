@@ -80,7 +80,7 @@ class Action(GitHubAction):
                 )(**RdfFileExtractor(rdf_file_path=data_file_path)())
 
         AppLoader(
-            cache_dir_path=self._cache_dir_path / "app",
+            cache_dir_path=self._cache_dir_path,
             deployer=FsDeployer(
                 # We're running in an environment that's never been used before, so no need to archive
                 archive=False,
