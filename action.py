@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Type, List
 
 from configargparse import ArgParser
+from more_itertools import consume
 
 from paradicms_etl.extractors.rdf_file_extractor import RdfFileExtractor
 from paradicms_etl.github_action import GitHubAction
@@ -79,19 +80,21 @@ class Action(GitHubAction):
                     root_model_classes_by_name=ROOT_MODEL_CLASSES_BY_NAME
                 )(**RdfFileExtractor(rdf_file_path=data_file_path)())
 
-        AppLoader(
-            cache_dir_path=self._cache_dir_path,
-            deployer=FsDeployer(
-                # We're running in an environment that's never been used before, so no need to archive
-                archive=False,
-                # We're also running in Docker, which usually means that the GUI's out directory is on a different mount
-                # than the directory we're "deploying" to, and we need to use copy instead of rename.
-                copy=True,
-                deploy_dir_path=Path(self.__site_directory_path).absolute(),
-            ),
-            dev=self.__dev,
-            pipeline_id=self._pipeline_id,
-        )(flush=True, models=extract_transform())
+        consume(
+            AppLoader(
+                cache_dir_path=self._cache_dir_path,
+                deployer=FsDeployer(
+                    # We're running in an environment that's never been used before, so no need to archive
+                    archive=False,
+                    # We're also running in Docker, which usually means that the GUI's out directory is on a different mount
+                    # than the directory we're "deploying" to, and we need to use copy instead of rename.
+                    copy=True,
+                    deploy_dir_path=Path(self.__site_directory_path).absolute(),
+                ),
+                dev=self.__dev,
+                pipeline_id=self._pipeline_id,
+            )(flush=True, models=extract_transform())
+        )
 
 
 if __name__ == "__main__":
