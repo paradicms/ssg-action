@@ -3,9 +3,8 @@ import dataclasses
 import os.path
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Type, List
+from typing import List
 
-from configargparse import ArgParser
 from more_itertools import consume
 
 from paradicms_etl.extractors.rdf_file_extractor import RdfFileExtractor
@@ -25,10 +24,24 @@ class Action(GitHubAction):
 
     @dataclass(frozen=True)
     class Inputs(GitHubAction.Inputs):
+        client_api: str = dataclasses.field(
+            default="",
+            metadata={
+                "description": "API to use on the client side, defaults to using static data"
+            },
+        )
+
         data_paths: str = dataclasses.field(
             default=".paradicms/data",
             metadata={
                 "description": "colon-separated paths to one or more data files created by ETL actions, or directories containing data files"
+            },
+        )
+
+        next_commands: str = dataclasses.field(
+            default=";".join(AppLoader.NEXT_COMMANDS_DEFAULT),
+            metadata={
+                "description": "semicolon-separated list of Next.js commands to execute"
             },
         )
 
@@ -39,8 +52,18 @@ class Action(GitHubAction):
             },
         )
 
-    def __init__(self, *, data_paths: str, dev: bool, site_directory_path: str, **kwds):
+    def __init__(
+        self,
+        *,
+        client_api: str,
+        data_paths: str,
+        next_commands: str,
+        site_directory_path: str,
+        **kwds,
+    ):
         GitHubAction.__init__(self, **kwds)
+
+        self.__client_api = client_api if client_api.strip() else None
 
         data_file_paths: List[Path] = []
         for data_path in data_paths.split(os.path.pathsep):
@@ -58,20 +81,11 @@ class Action(GitHubAction):
             else:
                 raise NotImplementedError
         self.__data_file_paths = tuple(data_file_paths)
-        self.__dev = dev
-        self.__site_directory_path = Path(site_directory_path)
 
-    @classmethod
-    def _add_arguments(
-        cls, arg_parser: ArgParser, *, inputs_class: Type[GitHubAction.Inputs]
-    ):
-        GitHubAction._add_arguments(arg_parser, inputs_class=cls.Inputs)
-
-        arg_parser.add_argument(
-            "--dev",
-            action="store_true",
-            help="start the app in dev mode rather than building it",
+        self.__next_commands = tuple(
+            next_command.strip() for next_command in next_commands.split(";")
         )
+        self.__site_directory_path = Path(site_directory_path)
 
     def _run(self):
         def extract_transform():
@@ -83,6 +97,7 @@ class Action(GitHubAction):
         consume(
             AppLoader(
                 cache_dir_path=self._cache_dir_path,
+                client_api=self.__client_api,
                 deployer=FsDeployer(
                     # We're running in an environment that's never been used before, so no need to archive
                     archive=False,
@@ -91,7 +106,7 @@ class Action(GitHubAction):
                     copy=True,
                     deploy_dir_path=Path(self.__site_directory_path).absolute(),
                 ),
-                dev=self.__dev,
+                next_commands=self.__next_commands,
                 pipeline_id=self._pipeline_id,
             )(flush=True, models=extract_transform())
         )
