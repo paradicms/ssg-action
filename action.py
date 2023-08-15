@@ -39,9 +39,9 @@ class Action(GitHubAction):
         )
 
         next_commands: str = dataclasses.field(
-            default=";".join(AppLoader.NEXT_COMMANDS_DEFAULT),
+            default=",".join(AppLoader.NEXT_COMMANDS_DEFAULT),
             metadata={
-                "description": "semicolon-separated list of Next.js commands to execute"
+                "description": "comma-separated list of Next.js commands to execute"
             },
         )
 
@@ -83,7 +83,7 @@ class Action(GitHubAction):
         self.__data_file_paths = tuple(data_file_paths)
 
         self.__next_commands = tuple(
-            next_command.strip() for next_command in next_commands.split(";")
+            next_command.strip() for next_command in next_commands.split(",")
         )
         self.__site_directory_path = Path(site_directory_path)
 
