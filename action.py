@@ -6,15 +6,17 @@ from pathlib import Path
 from typing import List
 
 from more_itertools import consume
-
 from paradicms_etl.extractors.rdf_file_extractor import RdfFileExtractor
 from paradicms_etl.github_action import GitHubAction
 from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
     RdfConjunctiveGraphTransformer,
 )
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
-from paradicms_ssg.loaders.app_loader import AppLoader
 from paradicms_ssg.models.root_model_classes_by_name import ROOT_MODEL_CLASSES_BY_NAME
+from paradicms_ssg.static_site_generator import StaticSiteGenerator
+from paradicms_ssg.validators.ssg_compatibility_validator import (
+    ssg_compatibility_validator,
+)
 
 
 class Action(GitHubAction):
@@ -39,7 +41,7 @@ class Action(GitHubAction):
         )
 
         next_commands: str = dataclasses.field(
-            default=",".join(AppLoader.NEXT_COMMANDS_DEFAULT),
+            default=",".join(StaticSiteGenerator.NEXT_COMMANDS_DEFAULT),
             metadata={
                 "description": "comma-separated list of Next.js commands to execute"
             },
@@ -92,10 +94,12 @@ class Action(GitHubAction):
             for data_file_path in self.__data_file_paths:
                 yield from RdfConjunctiveGraphTransformer(
                     root_model_classes_by_name=ROOT_MODEL_CLASSES_BY_NAME
-                )(**RdfFileExtractor(rdf_file_path=data_file_path)())
+                )(
+                    **RdfFileExtractor(rdf_file_path=data_file_path)()  # type: ignore
+                )  # type: ignore
 
         consume(
-            AppLoader(
+            StaticSiteGenerator(
                 cache_dir_path=self._cache_dir_path,
                 client_api=self.__client_api,
                 deployer=FsDeployer(
