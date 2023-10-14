@@ -11,6 +11,7 @@ from paradicms_etl.github_action import GitHubAction
 from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
     RdfConjunctiveGraphTransformer,
 )
+from paradicms_etl.utils.merge_same_as_models import merge_same_as_models
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
 from paradicms_ssg.model_standardizer import model_standardizer
 from paradicms_ssg.models.root_model_classes_by_name import ROOT_MODEL_CLASSES_BY_NAME
@@ -110,7 +111,10 @@ class Action(GitHubAction):
                 ),
                 next_commands=self.__next_commands,
                 pipeline_id=self._pipeline_id,
-            )(flush=True, models=model_standardizer(extract_transform()))
+            )(
+                flush=True,
+                models=merge_same_as_models(model_standardizer(extract_transform())),
+            )
         )
 
 
