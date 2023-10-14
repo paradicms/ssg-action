@@ -12,11 +12,9 @@ from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
     RdfConjunctiveGraphTransformer,
 )
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
+from paradicms_ssg.model_standardizer import model_standardizer
 from paradicms_ssg.models.root_model_classes_by_name import ROOT_MODEL_CLASSES_BY_NAME
 from paradicms_ssg.static_site_generator import StaticSiteGenerator
-from paradicms_ssg.validators.ssg_compatibility_validator import (
-    ssg_compatibility_validator,
-)
 
 
 class Action(GitHubAction):
@@ -112,7 +110,7 @@ class Action(GitHubAction):
                 ),
                 next_commands=self.__next_commands,
                 pipeline_id=self._pipeline_id,
-            )(flush=True, models=extract_transform())
+            )(flush=True, models=model_standardizer(extract_transform()))
         )
 
 
