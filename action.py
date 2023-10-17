@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List
 
 from more_itertools import consume
+from paradicms_etl.canonicalizer import canonicalizer
 from paradicms_etl.extractors.rdf_file_extractor import RdfFileExtractor
 from paradicms_etl.github_action import GitHubAction
 from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
@@ -13,7 +14,6 @@ from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
 )
 from paradicms_etl.utils.merge_same_as_models import merge_same_as_models
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
-from paradicms_ssg.model_standardizer import model_standardizer
 from paradicms_ssg.models.root_model_classes_by_name import ROOT_MODEL_CLASSES_BY_NAME
 from paradicms_ssg.static_site_generator import StaticSiteGenerator
 
@@ -113,7 +113,7 @@ class Action(GitHubAction):
                 pipeline_id=self._pipeline_id,
             )(
                 flush=True,
-                models=merge_same_as_models(model_standardizer(extract_transform())),
+                models=merge_same_as_models(canonicalizer(extract_transform())),
             )
         )
 
