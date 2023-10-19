@@ -14,7 +14,6 @@ from paradicms_etl.transformers.rdf_conjunctive_graph_transformer import (
 )
 from paradicms_etl.utils.merge_same_as_models import merge_same_as_models
 from paradicms_ssg.deployers.fs_deployer import FsDeployer
-from paradicms_ssg.models.root_model_classes_by_name import ROOT_MODEL_CLASSES_BY_NAME
 from paradicms_ssg.static_site_generator import StaticSiteGenerator
 
 
@@ -91,9 +90,7 @@ class Action(GitHubAction):
     def _run(self):
         def extract_transform():
             for data_file_path in self.__data_file_paths:
-                yield from RdfConjunctiveGraphTransformer(
-                    root_model_classes_by_name=ROOT_MODEL_CLASSES_BY_NAME
-                )(
+                yield from RdfConjunctiveGraphTransformer()(
                     **RdfFileExtractor(rdf_file_path=data_file_path)()  # type: ignore
                 )  # type: ignore
 
