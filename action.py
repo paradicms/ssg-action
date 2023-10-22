@@ -89,10 +89,9 @@ class Action(GitHubAction):
 
     def _run(self):
         def extract_transform():
-            for data_file_path in self.__data_file_paths:
-                yield from RdfConjunctiveGraphTransformer()(
-                    **RdfFileExtractor(rdf_file_path=data_file_path)()  # type: ignore
-                )  # type: ignore
+            yield from RdfConjunctiveGraphTransformer()(
+                **RdfFileExtractor(rdf_file_paths=self.__data_file_paths)()  # type: ignore
+            )  # type: ignore
 
         consume(
             StaticSiteGenerator(
