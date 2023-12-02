@@ -95,6 +95,7 @@ class Action(GitHubAction):
 
         consume(
             StaticSiteGenerator(
+                base_url_path=os.environ.get("NEXT_BASE_PATH"),
                 cache_dir_path=self._cache_dir_path,
                 client_api=self.__client_api,
                 deployer=FsDeployer(
@@ -106,7 +107,6 @@ class Action(GitHubAction):
                     deploy_dir_path=Path(self.__site_directory_path).absolute(),
                 ),
                 next_commands=self.__next_commands,
-                pipeline_id=self._pipeline_id,
             )(
                 flush=True,
                 models=merge_same_as_models(canonicalizer(extract_transform())),
